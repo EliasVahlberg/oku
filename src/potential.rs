@@ -43,8 +43,9 @@ impl InteractionMatrix {
 
     /// Default urban interaction matrix.
     pub fn default_urban() -> Self {
-        serde_json::from_str(include_str!("../data/default_weights.json"))
-            .expect("embedded default_weights.json is valid")
+        let m: Self = serde_json::from_str(include_str!("../data/default_weights.json"))
+            .expect("embedded default_weights.json is valid");
+        m.build()
     }
 }
 

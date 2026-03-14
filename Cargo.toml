@@ -1,0 +1,17 @@
+[package]
+name = "oku"
+version = "0.1.0"
+edition = "2024"
+authors = ["Elias Vahlberg"]
+description = "PCB-inspired procedural city generation — a domain-specific facade over ogun"
+license = "MIT"
+repository = "https://github.com/EliasVahlberg/oku"
+keywords = ["procedural-generation", "city", "urban", "game-theory"]
+categories = ["algorithms", "game-development", "simulation"]
+
+[dependencies]
+ogun = { path = "../ogun" }
+rand = "0.9"
+rand_chacha = "0.9"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

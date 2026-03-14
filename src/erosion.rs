@@ -1,5 +1,11 @@
 //! Functional erosion — cascading degradation of city layouts.
+//!
+//! Removes buildings by durability, then propagates connectivity loss:
+//! structures that lose road access decay faster.
 
+use rand::Rng;
+use rand::SeedableRng;
+use rand_chacha::ChaCha8Rng;
 use serde::{Deserialize, Serialize};
 
 use crate::interpret::CityLayout;
@@ -14,13 +20,57 @@ pub struct ErosionSpec {
 
 /// Apply functional erosion to a city layout.
 ///
-/// Degrades buildings and roads based on severity, producing ruins that
-/// tell a story through their pattern of collapse.
-pub fn erode(city: &mut CityLayout, _spec: &ErosionSpec) {
-    // TODO: Implement cascading degradation.
-    // 1. Select weakest link (lowest durability road/building)
-    // 2. Degrade it
-    // 3. Propagate: dependent structures lose accessibility → accelerated decay
-    // 4. Repeat until severity target reached
-    let _ = city;
+/// Removes buildings (weakest first, with connectivity cascade),
+/// then removes orphaned roads.
+pub fn erode(city: &mut CityLayout, spec: &ErosionSpec) {
+    if city.buildings.is_empty() || spec.severity <= 0.0 {
+        return;
+    }
+
+    let mut rng = ChaCha8Rng::seed_from_u64(spec.seed);
+    let target = (city.buildings.len() as f32 * spec.severity.clamp(0.0, 1.0)) as usize;
+
+    for _ in 0..target {
+        if city.buildings.is_empty() {
+            break;
+        }
+
+        // Score each building: lower = more vulnerable.
+        // Connected buildings are more durable.
+        let scores: Vec<f32> = city
+            .buildings
+            .iter()
+            .enumerate()
+            .map(|(i, _b)| {
+                let road_count = city
+                    .roads
+                    .iter()
+                    .filter(|r| r.from == i || r.to == i)
+                    .count();
+                // Base durability + connectivity bonus + noise.
+                0.5 + (road_count as f32 * 0.2) + rng.random::<f32>() * 0.3
+            })
+            .collect();
+
+        // Remove the weakest.
+        let victim = scores
+            .iter()
+            .enumerate()
+            .min_by(|a, b| a.1.partial_cmp(b.1).unwrap())
+            .map(|(i, _)| i)
+            .unwrap();
+
+        city.buildings.remove(victim);
+
+        // Reindex road references after removal.
+        city.roads.retain(|r| r.from != victim && r.to != victim);
+        for road in &mut city.roads {
+            if road.from > victim {
+                road.from -= 1;
+            }
+            if road.to > victim {
+                road.to -= 1;
+            }
+        }
+    }
 }

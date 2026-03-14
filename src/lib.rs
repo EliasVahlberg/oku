@@ -1,32 +1,45 @@
 //! # Oku
 //!
 //! PCB-inspired procedural city generation — a domain-specific facade over
-//! [ogun](https://github.com/EliasVahlberg/ogun).
+//! [ogun](https://crates.io/crates/ogun).
 //!
-//! Named after the Yoruba concept encompassing death and the afterlife —
-//! fitting for a generator that builds cities meant to be found as ruins.
+//! ## Quick start
 //!
-//! ## Architecture
+//! ```rust
+//! use oku::*;
 //!
-//! ```text
-//! CitySpec + AgentCatalog
-//!       │
-//!   translate  →  ogun::Graph + Space + Config
-//!                       │
-//!                 ogun::generate()
-//!                       │
-//!   interpret  ←  ogun::Layout
-//!       │
-//!   CityLayout
-//!       │
-//!   erosion (optional)
-//!       │
-//!   CityLayout (eroded)
+//! let catalog = AgentCatalog {
+//!     templates: vec![
+//!         BuildingTemplate {
+//!             name: "market".into(),
+//!             category: Category::Commercial,
+//!             radius: 2,
+//!             priority: 0.8,
+//!             connections: vec![],
+//!         },
+//!         BuildingTemplate {
+//!             name: "house".into(),
+//!             category: Category::Residential,
+//!             radius: 1,
+//!             priority: 0.3,
+//!             connections: vec![],
+//!         },
+//!     ],
+//! };
+//!
+//! let spec = CitySpec {
+//!     width: 40,
+//!     height: 40,
+//!     city_type: CityType::TradeHub,
+//!     era: Era::Growth,
+//!     beta: 2.0,
+//!     seed: 42,
+//!     erosion: None,
+//! };
+//!
+//! let city = generate(&spec, &catalog);
+//! let tilemap = city.to_tilemap();
 //! ```
-//!
-//! Oku translates urban concepts (building types, road demands, growth phases)
-//! into ogun's abstract inputs (nodes, edges, potential functions), then
-//! interprets the output back into urban terms.
 
 mod arrival;
 mod catalog;
@@ -40,20 +53,21 @@ mod spec;
 mod translate;
 
 pub use arrival::{ArrivalStrategy, Phase};
-pub use catalog::{AgentCatalog, BuildingTemplate, Category};
+pub use catalog::{AgentCatalog, BuildingTemplate, Category, ConnectionDemand};
 pub use config::OkuConfig;
 pub use erosion::ErosionSpec;
-pub use interpret::CityLayout;
-pub use output::{SemanticGrid, TileMap};
+pub use interpret::{CityLayout, PlacedBuilding, Road};
+pub use output::{SemanticCell, SemanticGrid, Tile, TileMap};
+pub use potential::InteractionMatrix;
 pub use spec::{CitySpec, CityType, Era};
 
 /// Generate a city layout from a specification and agent catalog.
 ///
 /// Deterministic: same `spec` + `catalog` = same output.
 pub fn generate(spec: &CitySpec, catalog: &AgentCatalog) -> CityLayout {
-    let (graph, space, config) = translate::translate(spec, catalog);
+    let (graph, space, config, order) = translate::translate(spec, catalog);
     let layout = ogun::generate(&graph, &space, &config);
-    let mut city = interpret::interpret(&layout, catalog);
+    let mut city = interpret::interpret(&layout, &graph, catalog, &order, spec.width, spec.height);
 
     if let Some(ref erosion) = spec.erosion {
         erosion::erode(&mut city, erosion);

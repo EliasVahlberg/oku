@@ -10,7 +10,7 @@ keywords = ["procedural-generation", "city", "urban", "game-theory"]
 categories = ["algorithms", "game-development", "simulation"]
 
 [dependencies]
-ogun = { path = "../ogun" }
+ogun = "0.1.0"
 rand = "0.9"
 rand_chacha = "0.9"
 serde = { version = "1", features = ["derive"] }

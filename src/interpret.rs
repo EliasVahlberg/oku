@@ -3,6 +3,8 @@
 //! Maps abstract positions and paths back to urban domain types,
 //! using the graph edges to resolve road endpoints.
 
+use std::collections::HashSet;
+
 use ogun::{Graph, Layout, NodeId, Pos};
 use serde::{Deserialize, Serialize};
 
@@ -89,5 +91,84 @@ pub fn interpret(
         width,
         height,
         score: layout.score,
+    }
+}
+
+impl CityLayout {
+    /// Merge overlapping roads into a unified network.
+    ///
+    /// Deduplicates road cells, removes cells inside building footprints,
+    /// thins thick blobs, and rebuilds as connected components.
+    pub fn merge_roads(&mut self) {
+        // 1. Collect unique road cells.
+        let mut road_cells: HashSet<(u32, u32)> = HashSet::new();
+        for road in &self.roads {
+            road_cells.extend(&road.path);
+        }
+
+        // 2. Remove cells inside building footprints.
+        for b in &self.buildings {
+            let r = b.radius as i32;
+            for dy in -r..=r {
+                for dx in -r..=r {
+                    let bx = b.x as i32 + dx;
+                    let by = b.y as i32 + dy;
+                    if bx >= 0 && by >= 0 {
+                        road_cells.remove(&(bx as u32, by as u32));
+                    }
+                }
+            }
+        }
+
+        // 3. Thin: iteratively remove fully-interior cells
+        //    (all 4 cardinal neighbors are road → safe to remove).
+        loop {
+            let removable: Vec<_> = road_cells
+                .iter()
+                .copied()
+                .filter(|&(x, y)| {
+                    x > 0
+                        && y > 0
+                        && road_cells.contains(&(x - 1, y))
+                        && road_cells.contains(&(x + 1, y))
+                        && road_cells.contains(&(x, y - 1))
+                        && road_cells.contains(&(x, y + 1))
+                })
+                .collect();
+            if removable.is_empty() {
+                break;
+            }
+            for cell in removable {
+                road_cells.remove(&cell);
+            }
+        }
+
+        // 4. Rebuild roads from 4-connected components.
+        let mut visited: HashSet<(u32, u32)> = HashSet::new();
+        let mut merged = Vec::new();
+
+        for &start in &road_cells {
+            if !visited.insert(start) {
+                continue;
+            }
+            let mut component = vec![start];
+            let mut queue = vec![start];
+            while let Some((x, y)) = queue.pop() {
+                for (nx, ny) in [
+                    (x + 1, y),
+                    (x.wrapping_sub(1), y),
+                    (x, y + 1),
+                    (x, y.wrapping_sub(1)),
+                ] {
+                    if road_cells.contains(&(nx, ny)) && visited.insert((nx, ny)) {
+                        component.push((nx, ny));
+                        queue.push((nx, ny));
+                    }
+                }
+            }
+            merged.push(Road { from: 0, to: 0, path: component });
+        }
+
+        self.roads = merged;
     }
 }

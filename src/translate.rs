@@ -44,23 +44,38 @@ pub fn translate(
         .collect();
 
     // Edges: only positive attraction creates ogun edges.
+    // Same-category pairs are capped to K nearest neighbors to avoid O(n²)
+    // road explosion (60 residential buildings → 1770 edges without cap).
+    const K_SAME: usize = 3;
+
+    // Count how many same-category edges each node already has.
+    let mut same_count: Vec<usize> = vec![0; order.len()];
+
     let mut edges = Vec::new();
     let mut eid = 0u32;
     for (ni, &oi) in order.iter().enumerate() {
         for (nj, &oj) in order.iter().enumerate().skip(ni + 1) {
-            let f = matrix.get(
-                catalog.templates[oi].category,
-                catalog.templates[oj].category,
-            );
-            if f.attraction > f32::EPSILON {
-                edges.push(Edge {
-                    id: EdgeId(eid),
-                    src: NodeId(ni as u32),
-                    dst: NodeId(nj as u32),
-                    weight: f.attraction,
-                });
-                eid += 1;
+            let cat_i = catalog.templates[oi].category;
+            let cat_j = catalog.templates[oj].category;
+            let f = matrix.get(cat_i, cat_j);
+            if f.attraction <= f32::EPSILON {
+                continue;
             }
+            // Cap same-category edges per node.
+            if cat_i == cat_j {
+                if same_count[ni] >= K_SAME || same_count[nj] >= K_SAME {
+                    continue;
+                }
+                same_count[ni] += 1;
+                same_count[nj] += 1;
+            }
+            edges.push(Edge {
+                id: EdgeId(eid),
+                src: NodeId(ni as u32),
+                dst: NodeId(nj as u32),
+                weight: f.attraction,
+            });
+            eid += 1;
         }
     }
 

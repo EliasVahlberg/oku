@@ -69,6 +69,8 @@ pub fn generate(spec: &CitySpec, catalog: &AgentCatalog) -> CityLayout {
     let layout = ogun::generate(&graph, &space, &config);
     let mut city = interpret::interpret(&layout, &graph, catalog, &order, spec.width, spec.height);
 
+    city.merge_roads();
+
     if let Some(ref erosion) = spec.erosion {
         erosion::erode(&mut city, erosion);
     }

@@ -1,19 +1,19 @@
 {
   "weights": [
-    { "a": "Residential", "b": "Residential",    "weight": -0.3 },
-    { "a": "Residential", "b": "Commercial",     "weight":  1.5 },
-    { "a": "Residential", "b": "Sacred",         "weight":  1.0 },
-    { "a": "Residential", "b": "Military",       "weight": -0.3 },
-    { "a": "Residential", "b": "Infrastructure", "weight":  1.5 },
-    { "a": "Commercial",  "b": "Commercial",     "weight": -1.5 },
-    { "a": "Commercial",  "b": "Sacred",         "weight": -0.3 },
-    { "a": "Commercial",  "b": "Military",       "weight":  0.0 },
-    { "a": "Commercial",  "b": "Infrastructure", "weight":  1.0 },
-    { "a": "Sacred",      "b": "Sacred",         "weight": -1.0 },
-    { "a": "Sacred",      "b": "Military",       "weight": -1.5 },
-    { "a": "Sacred",      "b": "Infrastructure", "weight":  0.5 },
-    { "a": "Military",    "b": "Military",       "weight":  1.5 },
-    { "a": "Military",    "b": "Infrastructure", "weight":  1.0 },
-    { "a": "Infrastructure", "b": "Infrastructure", "weight": -0.3 }
+    { "a": "Residential", "b": "Residential",    "attraction": 0.3, "gap": 3.0 },
+    { "a": "Residential", "b": "Commercial",     "attraction": 1.5, "gap": 3.0 },
+    { "a": "Residential", "b": "Sacred",         "attraction": 1.0, "gap": 4.0 },
+    { "a": "Residential", "b": "Military",       "attraction": 0.0, "gap": 5.0 },
+    { "a": "Residential", "b": "Infrastructure", "attraction": 1.5, "gap": 2.0 },
+    { "a": "Commercial",  "b": "Commercial",     "attraction": 0.0, "gap": 5.0 },
+    { "a": "Commercial",  "b": "Sacred",         "attraction": 0.0, "gap": 4.0 },
+    { "a": "Commercial",  "b": "Military",       "attraction": 0.0, "gap": 4.0 },
+    { "a": "Commercial",  "b": "Infrastructure", "attraction": 1.0, "gap": 3.0 },
+    { "a": "Sacred",      "b": "Sacred",         "attraction": 0.0, "gap": 6.0 },
+    { "a": "Sacred",      "b": "Military",       "attraction": 0.0, "gap": 6.0 },
+    { "a": "Sacred",      "b": "Infrastructure", "attraction": 0.5, "gap": 3.0 },
+    { "a": "Military",    "b": "Military",       "attraction": 1.5, "gap": 2.0 },
+    { "a": "Military",    "b": "Infrastructure", "attraction": 1.0, "gap": 2.0 },
+    { "a": "Infrastructure", "b": "Infrastructure", "attraction": 0.0, "gap": 4.0 }
   ]
 }

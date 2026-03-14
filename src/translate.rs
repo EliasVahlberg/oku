@@ -1,8 +1,8 @@
 //! Translation layer: CitySpec + AgentCatalog → ogun inputs.
 //!
 //! Reorders nodes by arrival strategy, generates edges from the
-//! interaction matrix (both attraction and repulsion), and maps
-//! domain types to ogun abstractions.
+//! interaction matrix, and inflates node radii by per-category gap
+//! so ogun's overlap rejection enforces road-width spacing.
 
 use ogun::{Edge, EdgeId, Graph, Node, NodeId, OgunConfig, Space};
 use rand::SeedableRng;
@@ -28,35 +28,36 @@ pub fn translate(
 
     let matrix = InteractionMatrix::default();
 
-    // Nodes in arrival order.
+    // Nodes in arrival order, radii inflated by per-category gap padding
+    // so ogun's overlap check enforces minimum spacing between buildings.
     let nodes: Vec<Node> = order
         .iter()
         .enumerate()
-        .map(|(new_idx, &orig_idx)| Node {
-            id: NodeId(new_idx as u32),
-            radius: catalog.templates[orig_idx].radius,
+        .map(|(new_idx, &orig_idx)| {
+            let cat = catalog.templates[orig_idx].category;
+            let padding = matrix.padding(cat).ceil() as u32;
+            Node {
+                id: NodeId(new_idx as u32),
+                radius: catalog.templates[orig_idx].radius + padding,
+            }
         })
         .collect();
 
-    // Edges from interaction matrix.
-    // Only positive weights become edges — ogun's attraction is linear in distance,
-    // so negative-weight edges push buildings to opposite corners rather than
-    // creating gentle spacing. Same-category spacing comes from ogun's footprint
-    // collision (buildings can't overlap) plus a moderate global repulsion_k.
+    // Edges: only positive attraction creates ogun edges.
     let mut edges = Vec::new();
     let mut eid = 0u32;
     for (ni, &oi) in order.iter().enumerate() {
         for (nj, &oj) in order.iter().enumerate().skip(ni + 1) {
-            let w = matrix.weight(
+            let f = matrix.get(
                 catalog.templates[oi].category,
                 catalog.templates[oj].category,
             );
-            if w > f32::EPSILON {
+            if f.attraction > f32::EPSILON {
                 edges.push(Edge {
                     id: EdgeId(eid),
                     src: NodeId(ni as u32),
                     dst: NodeId(nj as u32),
-                    weight: w,
+                    weight: f.attraction,
                 });
                 eid += 1;
             }
@@ -69,8 +70,7 @@ pub fn translate(
         height: spec.height,
         obstacles: Vec::new(),
     };
-    // repulsion_k provides baseline spacing between all buildings so roads
-    // can route between them. Scaled to grid size — larger grids need more push.
+    // Moderate repulsion_k to spread buildings across the grid.
     let grid_diag = ((spec.width * spec.width + spec.height * spec.height) as f32).sqrt();
     let config = OgunConfig {
         beta: spec.beta,

@@ -58,7 +58,7 @@ pub use config::OkuConfig;
 pub use erosion::ErosionSpec;
 pub use interpret::{CityLayout, PlacedBuilding, Road};
 pub use output::{SemanticCell, SemanticGrid, Tile, TileMap};
-pub use potential::InteractionMatrix;
+pub use potential::{InteractionFn, InteractionMatrix};
 pub use spec::{CitySpec, CityType, Era};
 
 /// Generate a city layout from a specification and agent catalog.

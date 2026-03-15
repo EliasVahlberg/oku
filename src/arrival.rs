@@ -56,8 +56,8 @@ pub fn order_agents(
                 }
             }
             // Append any templates not covered by phases.
-            for i in 0..templates.len() {
-                if !seen[i] {
+            for (i, &s) in seen.iter().enumerate() {
+                if !s {
                     idx.push(i);
                 }
             }

@@ -69,14 +69,22 @@ impl CityLayout {
             }
         }
 
-        TileMap { width: w, height: h, tiles }
+        TileMap {
+            width: w,
+            height: h,
+            tiles,
+        }
     }
 
     /// Convert to a semantic grid with per-cell references.
     pub fn to_semantic_grid(&self) -> SemanticGrid {
         let (w, h) = (self.width, self.height);
         let mut cells = vec![
-            SemanticCell { tile: Tile::Empty, building_index: None, road_index: None };
+            SemanticCell {
+                tile: Tile::Empty,
+                building_index: None,
+                road_index: None
+            };
             (w * h) as usize
         ];
 
@@ -107,6 +115,10 @@ impl CityLayout {
             }
         }
 
-        SemanticGrid { width: w, height: h, cells }
+        SemanticGrid {
+            width: w,
+            height: h,
+            cells,
+        }
     }
 }

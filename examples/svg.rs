@@ -44,7 +44,11 @@ fn main() {
 
     eprintln!("Generating {} buildings...", catalog.templates.len());
     let city = generate(&spec, &catalog);
-    eprintln!("{} buildings placed, {} roads", city.buildings.len(), city.roads.len());
+    eprintln!(
+        "{} buildings placed, {} roads",
+        city.buildings.len(),
+        city.roads.len()
+    );
 
     // Find bounding box of content.
     let (mut min_x, mut max_x) = (spec.width, 0u32);
@@ -75,7 +79,10 @@ fn main() {
     let h = (max_y - min_y + 1) * CELL + 28; // extra space for legend
 
     let mut svg = String::new();
-    let _ = writeln!(svg, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{w}\" height=\"{h}\" viewBox=\"0 0 {w} {h}\">");
+    let _ = writeln!(
+        svg,
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{w}\" height=\"{h}\" viewBox=\"0 0 {w} {h}\">"
+    );
     let _ = writeln!(svg, "<rect width=\"{w}\" height=\"{h}\" fill=\"#1a1a2e\"/>");
 
     // Roads.
@@ -84,7 +91,10 @@ fn main() {
             if rx >= min_x && ry >= min_y {
                 let px = (rx - min_x) * CELL;
                 let py = (ry - min_y) * CELL;
-                let _ = writeln!(svg, "<rect x=\"{px}\" y=\"{py}\" width=\"{CELL}\" height=\"{CELL}\" fill=\"#555566\" opacity=\"0.6\"/>");
+                let _ = writeln!(
+                    svg,
+                    "<rect x=\"{px}\" y=\"{py}\" width=\"{CELL}\" height=\"{CELL}\" fill=\"#555566\" opacity=\"0.6\"/>"
+                );
             }
         }
     }
@@ -101,7 +111,10 @@ fn main() {
         let bx = (b.x.saturating_sub(b.radius) - min_x) * CELL;
         let by = (b.y.saturating_sub(b.radius) - min_y) * CELL;
         let side = (b.radius * 2 + 1) * CELL;
-        let _ = writeln!(svg, "<rect x=\"{bx}\" y=\"{by}\" width=\"{side}\" height=\"{side}\" fill=\"{fill}\" stroke=\"{stroke}\" stroke-width=\"1\" rx=\"1\"/>");
+        let _ = writeln!(
+            svg,
+            "<rect x=\"{bx}\" y=\"{by}\" width=\"{side}\" height=\"{side}\" fill=\"{fill}\" stroke=\"{stroke}\" stroke-width=\"1\" rx=\"1\"/>"
+        );
     }
 
     // Legend.
@@ -116,10 +129,16 @@ fn main() {
     ];
     let mut lx = 8u32;
     for &(color, label) in items {
-        let _ = writeln!(svg, "<rect x=\"{lx}\" y=\"{ly}\" width=\"10\" height=\"10\" fill=\"{color}\" rx=\"1\"/>");
+        let _ = writeln!(
+            svg,
+            "<rect x=\"{lx}\" y=\"{ly}\" width=\"10\" height=\"10\" fill=\"{color}\" rx=\"1\"/>"
+        );
         let tx = lx + 14;
         let ty = ly + 9;
-        let _ = writeln!(svg, "<text x=\"{tx}\" y=\"{ty}\" fill=\"#cccccc\" font-family=\"monospace\" font-size=\"10\">{label}</text>");
+        let _ = writeln!(
+            svg,
+            "<text x=\"{tx}\" y=\"{ty}\" fill=\"#cccccc\" font-family=\"monospace\" font-size=\"10\">{label}</text>"
+        );
         lx += 14 + label.len() as u32 * 6 + 12;
     }
 

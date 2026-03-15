@@ -64,10 +64,9 @@ pub fn interpret(
     let mut node_to_building: HashMap<u32, usize> = HashMap::new();
     let mut buildings: Vec<PlacedBuilding> = Vec::with_capacity(layout.positions.len());
 
-    for i in 0..order.len() {
+    for (i, &orig) in order.iter().enumerate() {
         let nid = NodeId(i as u32);
         if let Some(&Pos { x, y }) = layout.positions.get(&nid) {
-            let orig = order[i];
             let t = &catalog.templates[orig];
             node_to_building.insert(i as u32, buildings.len());
             buildings.push(PlacedBuilding {
@@ -105,9 +104,7 @@ pub fn interpret(
                 to,
                 path: path.iter().map(|p| (p.x, p.y)).collect(),
             });
-            route_costs.push(
-                layout.route_costs.get(&edge.id).copied().unwrap_or(0.0),
-            );
+            route_costs.push(layout.route_costs.get(&edge.id).copied().unwrap_or(0.0));
         }
     }
 
@@ -203,7 +200,11 @@ impl CityLayout {
                     }
                 }
             }
-            merged.push(Road { from: 0, to: 0, path: component });
+            merged.push(Road {
+                from: 0,
+                to: 0,
+                path: component,
+            });
         }
 
         self.roads = merged;

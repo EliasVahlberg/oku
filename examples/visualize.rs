@@ -111,7 +111,10 @@ fn main() {
         era: Era::Growth,
         beta: 2.5,
         seed: 7,
-        erosion: severity.map(|s| ErosionSpec { severity: s, seed: 7 }),
+        erosion: severity.map(|s| ErosionSpec {
+            severity: s,
+            seed: 7,
+        }),
     };
 
     eprintln!(

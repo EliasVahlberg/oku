@@ -52,10 +52,10 @@ impl InteractionMatrix {
 
     /// Interaction function between two categories.
     pub fn get(&self, a: Category, b: Category) -> InteractionFn {
-        self.lookup
-            .get(&(a, b))
-            .copied()
-            .unwrap_or(InteractionFn { attraction: 0.0, gap: 0.0 })
+        self.lookup.get(&(a, b)).copied().unwrap_or(InteractionFn {
+            attraction: 0.0,
+            gap: 0.0,
+        })
     }
 
     /// Maximum gap/2 for a category across all its interactions.

@@ -95,12 +95,12 @@ pub fn translate(
     let mut repulsion_pairs: HashMap<(NodeId, NodeId), f32> = HashMap::new();
     for (ni, &oi) in order.iter().enumerate() {
         for (nj, &oj) in order.iter().enumerate().skip(ni + 1) {
-            let f = matrix.get(catalog.templates[oi].category, catalog.templates[oj].category);
+            let f = matrix.get(
+                catalog.templates[oi].category,
+                catalog.templates[oj].category,
+            );
             if f.gap > 0.0 && f.attraction <= f32::EPSILON {
-                repulsion_pairs.insert(
-                    (NodeId(ni as u32), NodeId(nj as u32)),
-                    f.gap / 2.0,
-                );
+                repulsion_pairs.insert((NodeId(ni as u32), NodeId(nj as u32)), f.gap / 2.0);
             }
         }
     }
@@ -124,9 +124,18 @@ fn default_strategy(city_type: CityType) -> ArrivalStrategy {
         CityType::Ruin => ArrivalStrategy::Random,
         CityType::FrontierOutpost | CityType::TradeHub => ArrivalStrategy::Phased {
             phases: vec![
-                Phase { name: "founding".into(), categories: vec![Military, Infrastructure] },
-                Phase { name: "core".into(), categories: vec![Sacred, Commercial] },
-                Phase { name: "growth".into(), categories: vec![Residential] },
+                Phase {
+                    name: "founding".into(),
+                    categories: vec![Military, Infrastructure],
+                },
+                Phase {
+                    name: "core".into(),
+                    categories: vec![Sacred, Commercial],
+                },
+                Phase {
+                    name: "growth".into(),
+                    categories: vec![Residential],
+                },
             ],
         },
     }

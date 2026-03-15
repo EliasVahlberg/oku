@@ -45,11 +45,8 @@ fn bench_generate(c: &mut Criterion) {
     group.measurement_time(Duration::from_secs(5));
 
     // Keep scales small — ogun SA is expensive per iteration
-    let scales: &[(&str, usize, u32)] = &[
-        ("10x30", 10, 30),
-        ("30x80", 30, 80),
-        ("60x120", 60, 120),
-    ];
+    let scales: &[(&str, usize, u32)] =
+        &[("10x30", 10, 30), ("30x80", 30, 80), ("60x120", 60, 120)];
 
     for &(label, n, size) in scales {
         let cat = catalog(n);

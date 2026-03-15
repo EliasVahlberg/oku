@@ -57,10 +57,10 @@ pub use catalog::{AgentCatalog, BuildingTemplate, Category, ConnectionDemand};
 pub use config::OkuConfig;
 pub use erosion::ErosionSpec;
 pub use interpret::{CityLayout, PlacedBuilding, Road};
+pub use ogun::ScoreBreakdown;
 pub use output::{SemanticCell, SemanticGrid, Tile, TileMap};
 pub use potential::{InteractionFn, InteractionMatrix};
 pub use spec::{CitySpec, CityType, Era};
-pub use ogun::ScoreBreakdown;
 
 /// Generate a city layout from a specification and agent catalog.
 ///

@@ -12,7 +12,7 @@ Named after the Yoruba concept encompassing death and the afterlife — fitting 
 
 ```toml
 [dependencies]
-oku = "0.1"
+oku = "0.2"
 ```
 
 ## Quick start

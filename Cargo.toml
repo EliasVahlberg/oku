@@ -6,7 +6,7 @@ authors = ["Elias Vahlberg"]
 description = "PCB-inspired procedural city generation — a domain-specific facade over ogun"
 license = "MIT"
 repository = "https://github.com/EliasVahlberg/oku"
-keywords = ["procedural-generation", "city", "urban", "game-theory"]
+keywords = ["procgen", "city", "urban", "game-theory"]
 categories = ["algorithms", "game-development", "simulation"]
 
 [dependencies]

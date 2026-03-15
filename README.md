@@ -89,7 +89,7 @@ CitySpec + AgentCatalog
 
 ## Status
 
-Early development. See `docs/OKU_STRUCTURE.md` for the full design exploration.
+v0.2.0 — material-aware erosion, ConnectionDemand wiring, road identity tracking, ogun 0.3.0 negotiated routing. See `docs/OKU_STRUCTURE.md` for the full design.
 
 ## License
 

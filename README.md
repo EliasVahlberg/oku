@@ -1,4 +1,6 @@
 # oku
+[[crates.io]](https://crates.io/crates/oku)
+[[docs.rs]](https://docs.rs/oku)
 
 PCB-inspired procedural city generation — a domain-specific facade over [ogun](https://github.com/EliasVahlberg/ogun).
 
@@ -7,6 +9,49 @@ Named after the Yoruba concept encompassing death and the afterlife — fitting 
 <p align="center">
   <img src="docs/city.svg" alt="Generated city layout — 96 buildings across 5 categories with negotiated road routing" width="340">
 </p>
+
+```toml
+[dependencies]
+oku = "0.1"
+```
+
+## Quick start
+
+```rust
+use oku::*;
+
+let catalog = AgentCatalog {
+    templates: vec![
+        BuildingTemplate {
+            name: "market".into(),
+            category: Category::Commercial,
+            radius: 2,
+            priority: 0.8,
+            connections: vec![],
+        },
+        BuildingTemplate {
+            name: "house".into(),
+            category: Category::Residential,
+            radius: 1,
+            priority: 0.3,
+            connections: vec![],
+        },
+    ],
+};
+
+let spec = CitySpec {
+    width: 40,
+    height: 40,
+    city_type: CityType::TradeHub,
+    era: Era::Growth,
+    beta: 2.0,
+    seed: 42,
+    erosion: None,
+};
+
+let city = generate(&spec, &catalog);
+assert!(!city.buildings.is_empty());
+```
 
 ## What it does
 

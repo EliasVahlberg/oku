@@ -4,6 +4,8 @@
 //! interaction matrix, and inflates node radii by per-category gap
 //! so ogun's overlap rejection enforces road-width spacing.
 
+use std::collections::HashMap;
+
 use ogun::{Edge, EdgeId, Graph, Node, NodeId, OgunConfig, Space};
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
@@ -87,10 +89,28 @@ pub fn translate(
     };
     // Moderate repulsion_k to spread buildings across the grid.
     let grid_diag = ((spec.width * spec.width + spec.height * spec.height) as f32).sqrt();
+
+    // Per-pair repulsion: category pairs with gap but no attraction get extra
+    // repulsion force so ogun pushes them apart beyond the minimum spacing.
+    let mut repulsion_pairs: HashMap<(NodeId, NodeId), f32> = HashMap::new();
+    for (ni, &oi) in order.iter().enumerate() {
+        for (nj, &oj) in order.iter().enumerate().skip(ni + 1) {
+            let f = matrix.get(catalog.templates[oi].category, catalog.templates[oj].category);
+            if f.gap > 0.0 && f.attraction <= f32::EPSILON {
+                repulsion_pairs.insert(
+                    (NodeId(ni as u32), NodeId(nj as u32)),
+                    f.gap / 2.0,
+                );
+            }
+        }
+    }
+
     let config = OgunConfig {
         beta: spec.beta,
         seed: spec.seed,
         repulsion_k: grid_diag * 2.0,
+        repulsion_pairs,
+        ..OgunConfig::default()
     };
 
     (graph, space, config, order)

@@ -3,9 +3,9 @@
 //! Maps abstract positions and paths back to urban domain types,
 //! using the graph edges to resolve road endpoints.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
-use ogun::{Graph, Layout, NodeId, Pos};
+use ogun::{Graph, Layout, NodeId, Pos, ScoreBreakdown};
 use serde::{Deserialize, Serialize};
 
 use crate::catalog::AgentCatalog;
@@ -17,7 +17,15 @@ pub struct CityLayout {
     pub roads: Vec<Road>,
     pub width: u32,
     pub height: u32,
-    pub score: f32,
+    pub score: ScoreBreakdown,
+    /// Template indices of buildings that couldn't be placed.
+    pub unplaced: Vec<usize>,
+    /// Per-building accessibility (fraction of edges routed). Indexed by buildings vec.
+    pub accessibility: Vec<f32>,
+    /// Per-edge routing cost. Indexed by roads vec (before merge).
+    pub route_costs: Vec<f32>,
+    /// Per-cell route overlap count, row-major `width * height`.
+    pub congestion_grid: Vec<u32>,
 }
 
 /// A building placed at a specific position.
@@ -52,14 +60,16 @@ pub fn interpret(
     width: u32,
     height: u32,
 ) -> CityLayout {
-    // Build buildings from placed positions.
-    // NodeId(i) corresponds to order[i] in the catalog.
+    // Map NodeId → index in the buildings vec (only placed nodes get an entry).
+    let mut node_to_building: HashMap<u32, usize> = HashMap::new();
     let mut buildings: Vec<PlacedBuilding> = Vec::with_capacity(layout.positions.len());
+
     for i in 0..order.len() {
         let nid = NodeId(i as u32);
         if let Some(&Pos { x, y }) = layout.positions.get(&nid) {
             let orig = order[i];
             let t = &catalog.templates[orig];
+            node_to_building.insert(i as u32, buildings.len());
             buildings.push(PlacedBuilding {
                 template_index: orig,
                 name: t.name.clone(),
@@ -71,18 +81,41 @@ pub fn interpret(
         }
     }
 
-    // Build roads from routed paths, mapping EdgeId → (src NodeId, dst NodeId).
-    let roads: Vec<Road> = layout
-        .paths
-        .iter()
-        .filter_map(|(edge_id, path)| {
-            let edge = graph.edges.iter().find(|e| e.id == *edge_id)?;
-            Some(Road {
-                from: edge.src.0 as usize,
-                to: edge.dst.0 as usize,
+    // Per-building accessibility from ogun's per-node metric.
+    let mut accessibility: Vec<f32> = vec![0.0; buildings.len()];
+    for (&nid_raw, &bi) in &node_to_building {
+        if bi < accessibility.len() {
+            accessibility[bi] = layout
+                .node_accessibility
+                .get(&NodeId(nid_raw))
+                .copied()
+                .unwrap_or(0.0);
+        }
+    }
+
+    // Build roads from routed paths.
+    let mut roads = Vec::new();
+    let mut route_costs = Vec::new();
+    for edge in &graph.edges {
+        if let Some(path) = layout.paths.get(&edge.id) {
+            let from = node_to_building.get(&edge.src.0).copied().unwrap_or(0);
+            let to = node_to_building.get(&edge.dst.0).copied().unwrap_or(0);
+            roads.push(Road {
+                from,
+                to,
                 path: path.iter().map(|p| (p.x, p.y)).collect(),
-            })
-        })
+            });
+            route_costs.push(
+                layout.route_costs.get(&edge.id).copied().unwrap_or(0.0),
+            );
+        }
+    }
+
+    // Unplaced: map NodeIds back to template indices.
+    let unplaced: Vec<usize> = layout
+        .unplaced
+        .iter()
+        .map(|nid| order[nid.0 as usize])
         .collect();
 
     CityLayout {
@@ -90,7 +123,11 @@ pub fn interpret(
         roads,
         width,
         height,
-        score: layout.score,
+        score: layout.score.clone(),
+        unplaced,
+        accessibility,
+        route_costs,
+        congestion_grid: layout.congestion_grid.clone(),
     }
 }
 
@@ -170,5 +207,6 @@ impl CityLayout {
         }
 
         self.roads = merged;
+        self.route_costs.clear();
     }
 }

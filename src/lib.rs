@@ -60,6 +60,7 @@ pub use interpret::{CityLayout, PlacedBuilding, Road};
 pub use output::{SemanticCell, SemanticGrid, Tile, TileMap};
 pub use potential::{InteractionFn, InteractionMatrix};
 pub use spec::{CitySpec, CityType, Era};
+pub use ogun::ScoreBreakdown;
 
 /// Generate a city layout from a specification and agent catalog.
 ///

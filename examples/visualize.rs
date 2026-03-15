@@ -210,7 +210,7 @@ fn main() {
         "  {} buildings, {} roads, score: {:.3}{}",
         city.buildings.len(),
         city.roads.len(),
-        city.score,
+        city.score.composite,
         severity.map_or(String::new(), |s| format!(", erosion: {:.0}%", s * 100.0)),
     );
     println!();

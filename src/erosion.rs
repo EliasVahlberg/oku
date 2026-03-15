@@ -36,19 +36,15 @@ pub fn erode(city: &mut CityLayout, spec: &ErosionSpec) {
         }
 
         // Score each building: lower = more vulnerable.
-        // Connected buildings are more durable.
+        // Accessibility from ogun measures how well-connected each building is.
         let scores: Vec<f32> = city
             .buildings
             .iter()
             .enumerate()
             .map(|(i, _b)| {
-                let road_count = city
-                    .roads
-                    .iter()
-                    .filter(|r| r.from == i || r.to == i)
-                    .count();
-                // Base durability + connectivity bonus + noise.
-                0.5 + (road_count as f32 * 0.2) + rng.random::<f32>() * 0.3
+                let acc = city.accessibility.get(i).copied().unwrap_or(0.0);
+                // Base durability + accessibility bonus + noise.
+                0.3 + acc * 0.5 + rng.random::<f32>() * 0.2
             })
             .collect();
 
@@ -61,6 +57,7 @@ pub fn erode(city: &mut CityLayout, spec: &ErosionSpec) {
             .unwrap();
 
         city.buildings.remove(victim);
+        city.accessibility.remove(victim);
 
         // Reindex road references after removal.
         city.roads.retain(|r| r.from != victim && r.to != victim);

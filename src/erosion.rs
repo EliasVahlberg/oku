@@ -41,10 +41,9 @@ pub fn erode(city: &mut CityLayout, spec: &ErosionSpec) {
             .buildings
             .iter()
             .enumerate()
-            .map(|(i, _b)| {
+            .map(|(i, b)| {
                 let acc = city.accessibility.get(i).copied().unwrap_or(0.0);
-                // Base durability + accessibility bonus + noise.
-                0.3 + acc * 0.5 + rng.random::<f32>() * 0.2
+                b.material.durability() * 0.4 + acc * 0.4 + rng.random::<f32>() * 0.2
             })
             .collect();
 

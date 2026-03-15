@@ -81,11 +81,30 @@ pub fn translate(
         }
     }
 
+    // ConnectionDemand: per-template edges to nearest match by arrival order.
+    for (ni, &oi) in order.iter().enumerate() {
+        for demand in &catalog.templates[oi].connections {
+            for (nj, &oj) in order.iter().enumerate() {
+                if ni != nj && catalog.templates[oj].category == demand.target {
+                    edges.push(Edge {
+                        id: EdgeId(eid),
+                        src: NodeId(ni as u32),
+                        dst: NodeId(nj as u32),
+                        weight: demand.weight,
+                    });
+                    eid += 1;
+                    break;
+                }
+            }
+        }
+    }
+
     let graph = Graph { nodes, edges };
     let space = Space {
         width: spec.width,
         height: spec.height,
         obstacles: Vec::new(),
+        routing_costs: None,
     };
     // Moderate repulsion_k to spread buildings across the grid.
     let grid_diag = ((spec.width * spec.width + spec.height * spec.height) as f32).sqrt();

@@ -17,6 +17,7 @@ fn main() {
                 radius,
                 priority: base_pri - i as f32 * 0.01,
                 connections: vec![],
+                material: Material::Stone,
             });
         }
     };

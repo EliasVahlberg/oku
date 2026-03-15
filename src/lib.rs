@@ -16,6 +16,7 @@
 //!             radius: 2,
 //!             priority: 0.8,
 //!             connections: vec![],
+//!             material: Material::Stone,
 //!         },
 //!         BuildingTemplate {
 //!             name: "house".into(),
@@ -23,6 +24,7 @@
 //!             radius: 1,
 //!             priority: 0.3,
 //!             connections: vec![],
+//!             material: Material::Wood,
 //!         },
 //!     ],
 //! };
@@ -53,8 +55,7 @@ mod spec;
 mod translate;
 
 pub use arrival::{ArrivalStrategy, Phase};
-pub use catalog::{AgentCatalog, BuildingTemplate, Category, ConnectionDemand};
-pub use config::OkuConfig;
+pub use catalog::{AgentCatalog, BuildingTemplate, Category, ConnectionDemand, Material};
 pub use erosion::ErosionSpec;
 pub use interpret::{CityLayout, PlacedBuilding, Road};
 pub use ogun::ScoreBreakdown;

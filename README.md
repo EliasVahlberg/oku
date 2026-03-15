@@ -28,6 +28,7 @@ let catalog = AgentCatalog {
             radius: 2,
             priority: 0.8,
             connections: vec![],
+            material: Material::Stone,
         },
         BuildingTemplate {
             name: "house".into(),
@@ -35,6 +36,7 @@ let catalog = AgentCatalog {
             radius: 1,
             priority: 0.3,
             connections: vec![],
+            material: Material::Wood,
         },
     ],
 };

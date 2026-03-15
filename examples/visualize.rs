@@ -21,6 +21,7 @@ fn main() {
             radius: 2,
             priority: 1.0 - i as f32 * 0.01,
             connections: vec![],
+            material: Material::Stone,
         });
     }
 
@@ -32,6 +33,7 @@ fn main() {
             radius: 1,
             priority: 0.9 - i as f32 * 0.02,
             connections: vec![],
+            material: Material::Stone,
         });
     }
     for i in 0..4 {
@@ -41,6 +43,7 @@ fn main() {
             radius: 2,
             priority: 0.85 - i as f32 * 0.02,
             connections: vec![],
+            material: Material::Stone,
         });
     }
 
@@ -51,6 +54,7 @@ fn main() {
         radius: 3,
         priority: 0.8,
         connections: vec![],
+        material: Material::Stone,
     });
     for i in 0..3 {
         templates.push(BuildingTemplate {
@@ -59,6 +63,7 @@ fn main() {
             radius: 2,
             priority: 0.7 - i as f32 * 0.05,
             connections: vec![],
+            material: Material::Stone,
         });
     }
 
@@ -70,6 +75,7 @@ fn main() {
             radius: 2,
             priority: 0.75 - i as f32 * 0.03,
             connections: vec![],
+            material: Material::Stone,
         });
     }
     for i in 0..8 {
@@ -79,6 +85,7 @@ fn main() {
             radius: 1,
             priority: 0.5 - i as f32 * 0.02,
             connections: vec![],
+            material: Material::Stone,
         });
     }
 
@@ -90,6 +97,7 @@ fn main() {
             radius: 1,
             priority: 0.3 - i as f32 * 0.005,
             connections: vec![],
+            material: Material::Stone,
         });
     }
     for i in 0..10 {
@@ -99,6 +107,7 @@ fn main() {
             radius: 2,
             priority: 0.35 - i as f32 * 0.01,
             connections: vec![],
+            material: Material::Stone,
         });
     }
 

@@ -34,6 +34,7 @@ pub struct PlacedBuilding {
     pub template_index: usize,
     pub name: String,
     pub category: crate::catalog::Category,
+    pub material: crate::catalog::Material,
     pub x: u32,
     pub y: u32,
     pub radius: u32,
@@ -47,6 +48,9 @@ pub struct Road {
     /// Index into `buildings` vec for the destination.
     pub to: usize,
     pub path: Vec<(u32, u32)>,
+    /// Building indices adjacent to this road component (populated after merge).
+    #[serde(default)]
+    pub serves: Vec<usize>,
 }
 
 /// Convert an abstract ogun layout into a domain-specific city layout.
@@ -73,6 +77,7 @@ pub fn interpret(
                 template_index: orig,
                 name: t.name.clone(),
                 category: t.category,
+                material: t.material,
                 x,
                 y,
                 radius: t.radius,
@@ -103,6 +108,7 @@ pub fn interpret(
                 from,
                 to,
                 path: path.iter().map(|p| (p.x, p.y)).collect(),
+                serves: vec![],
             });
             route_costs.push(layout.route_costs.get(&edge.id).copied().unwrap_or(0.0));
         }
@@ -200,10 +206,23 @@ impl CityLayout {
                     }
                 }
             }
+            // Find buildings adjacent to this road component.
+            let mut serves = Vec::new();
+            for &(cx, cy) in &component {
+                for (bi, b) in self.buildings.iter().enumerate() {
+                    if cx.abs_diff(b.x) <= b.radius + 1
+                        && cy.abs_diff(b.y) <= b.radius + 1
+                        && !serves.contains(&bi)
+                    {
+                        serves.push(bi);
+                    }
+                }
+            }
             merged.push(Road {
                 from: 0,
                 to: 0,
                 path: component,
+                serves,
             });
         }
 

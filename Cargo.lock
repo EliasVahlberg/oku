@@ -260,9 +260,9 @@ dependencies = [
 
 [[package]]
 name = "ogun"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2863dd28b2aef014f6977e62ce138e3c2eb4357974ae8a65354731bcc3510e2d"
+checksum = "b5869fdaf4899e1abfcf6b179b29c9c1948658b62acd2822f924f71728a7a072"
 dependencies = [
  "rand",
  "rand_chacha",
@@ -272,7 +272,7 @@ dependencies = [
 
 [[package]]
 name = "oku"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "criterion",
  "ogun",

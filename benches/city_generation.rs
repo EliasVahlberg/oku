@@ -12,6 +12,7 @@ fn catalog(n: usize) -> AgentCatalog {
                 radius,
                 priority: base_pri - i as f32 * 0.005,
                 connections: vec![],
+                material: Material::Stone,
             });
         }
     };

@@ -12,7 +12,7 @@ Named after the Yoruba concept encompassing death and the afterlife — fitting 
 
 ```toml
 [dependencies]
-oku = "0.2"
+oku = "0.3"
 ```
 
 ## Quick start
@@ -89,7 +89,7 @@ CitySpec + AgentCatalog
 
 ## Status
 
-v0.2.0 — material-aware erosion, ConnectionDemand wiring, road identity tracking, ogun 0.3.0 negotiated routing. See `docs/OKU_STRUCTURE.md` for the full design.
+v0.3.0 — rectangular footprints, terrain pass-through, custom interaction matrices and arrival strategies, building facing, erosion weight tuning, ogun 0.4.0. See `docs/OKU_STRUCTURE.md` for the full design.
 
 ## License
 

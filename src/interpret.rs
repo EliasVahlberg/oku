@@ -10,6 +10,15 @@ use serde::{Deserialize, Serialize};
 
 use crate::catalog::AgentCatalog;
 
+/// Cardinal direction for building facing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum Direction {
+    North,
+    East,
+    South,
+    West,
+}
+
 /// A fully generated city layout with urban semantics.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CityLayout {
@@ -37,15 +46,16 @@ pub struct PlacedBuilding {
     pub material: crate::catalog::Material,
     pub x: u32,
     pub y: u32,
-    pub radius: u32,
+    pub width: u32,
+    pub height: u32,
+    /// Direction the building entrance faces (toward nearest road).
+    pub facing: Option<Direction>,
 }
 
 /// A routed road between two buildings.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Road {
-    /// Index into `buildings` vec for the source.
     pub from: usize,
-    /// Index into `buildings` vec for the destination.
     pub to: usize,
     pub path: Vec<(u32, u32)>,
     /// Building indices adjacent to this road component (populated after merge).
@@ -64,7 +74,6 @@ pub fn interpret(
     width: u32,
     height: u32,
 ) -> CityLayout {
-    // Map NodeId → index in the buildings vec (only placed nodes get an entry).
     let mut node_to_building: HashMap<u32, usize> = HashMap::new();
     let mut buildings: Vec<PlacedBuilding> = Vec::with_capacity(layout.positions.len());
 
@@ -80,7 +89,9 @@ pub fn interpret(
                 material: t.material,
                 x,
                 y,
-                radius: t.radius,
+                width: t.width,
+                height: t.height,
+                facing: None, // computed after roads are built
             });
         }
     }
@@ -114,7 +125,9 @@ pub fn interpret(
         }
     }
 
-    // Unplaced: map NodeIds back to template indices.
+    // Compute facing: direction from building center to nearest road cell.
+    compute_facing(&mut buildings, &roads, width, height);
+
     let unplaced: Vec<usize> = layout
         .unplaced
         .iter()
@@ -134,34 +147,146 @@ pub fn interpret(
     }
 }
 
+/// Compute facing direction for each building based on nearest road cell.
+fn compute_facing(buildings: &mut [PlacedBuilding], roads: &[Road], width: u32, height: u32) {
+    // Collect all road cells into a set for fast lookup.
+    let road_cells: HashSet<(u32, u32)> =
+        roads.iter().flat_map(|r| r.path.iter().copied()).collect();
+
+    for b in buildings.iter_mut() {
+        let (cx, cy) = (b.x as i64, b.y as i64);
+        let hw = b.width as i64 / 2;
+        let hh = b.height as i64 / 2;
+
+        // Find nearest road cell by scanning a perimeter ring just outside the footprint.
+        let mut best_dist = i64::MAX;
+        let mut best_dir = None;
+
+        // Check cells adjacent to each edge of the building footprint.
+        for d in 1..=3i64 {
+            // North edge (y = cy - hh - d)
+            let ny = cy - hh - d;
+            if ny >= 0 {
+                for dx in -hw..=hw {
+                    let nx = cx + dx;
+                    if nx >= 0
+                        && (nx as u32) < width
+                        && road_cells.contains(&(nx as u32, ny as u32))
+                    {
+                        let dist = dx.abs() + d;
+                        if dist < best_dist {
+                            best_dist = dist;
+                            best_dir = Some(Direction::North);
+                        }
+                    }
+                }
+            }
+            // South edge
+            let sy = cy + hh + d;
+            if (sy as u32) < height {
+                for dx in -hw..=hw {
+                    let sx = cx + dx;
+                    if sx >= 0
+                        && (sx as u32) < width
+                        && road_cells.contains(&(sx as u32, sy as u32))
+                    {
+                        let dist = dx.abs() + d;
+                        if dist < best_dist {
+                            best_dist = dist;
+                            best_dir = Some(Direction::South);
+                        }
+                    }
+                }
+            }
+            // West edge
+            let wx = cx - hw - d;
+            if wx >= 0 {
+                for dy in -hh..=hh {
+                    let wy = cy + dy;
+                    if wy >= 0
+                        && (wy as u32) < height
+                        && road_cells.contains(&(wx as u32, wy as u32))
+                    {
+                        let dist = dy.abs() + d;
+                        if dist < best_dist {
+                            best_dist = dist;
+                            best_dir = Some(Direction::West);
+                        }
+                    }
+                }
+            }
+            // East edge
+            let ex = cx + hw + d;
+            if (ex as u32) < width {
+                for dy in -hh..=hh {
+                    let ey = cy + dy;
+                    if ey >= 0
+                        && (ey as u32) < height
+                        && road_cells.contains(&(ex as u32, ey as u32))
+                    {
+                        let dist = dy.abs() + d;
+                        if dist < best_dist {
+                            best_dist = dist;
+                            best_dir = Some(Direction::East);
+                        }
+                    }
+                }
+            }
+            if best_dir.is_some() {
+                break;
+            }
+        }
+
+        // Fallback: face toward grid center.
+        if best_dir.is_none() {
+            let gcx = width as i64 / 2;
+            let gcy = height as i64 / 2;
+            let dx = gcx - cx;
+            let dy = gcy - cy;
+            best_dir = Some(if dx.abs() >= dy.abs() {
+                if dx > 0 {
+                    Direction::East
+                } else {
+                    Direction::West
+                }
+            } else if dy > 0 {
+                Direction::South
+            } else {
+                Direction::North
+            });
+        }
+
+        b.facing = best_dir;
+    }
+}
+
 impl CityLayout {
     /// Merge overlapping roads into a unified network.
     ///
     /// Deduplicates road cells, removes cells inside building footprints,
     /// thins thick blobs, and rebuilds as connected components.
     pub fn merge_roads(&mut self) {
-        // 1. Collect unique road cells.
         let mut road_cells: HashSet<(u32, u32)> = HashSet::new();
         for road in &self.roads {
             road_cells.extend(&road.path);
         }
 
-        // 2. Remove cells inside building footprints.
+        // Remove cells inside building footprints (rectangular).
         for b in &self.buildings {
-            let r = b.radius as i32;
-            for dy in -r..=r {
-                for dx in -r..=r {
-                    let bx = b.x as i32 + dx;
-                    let by = b.y as i32 + dy;
-                    if bx >= 0 && by >= 0 {
-                        road_cells.remove(&(bx as u32, by as u32));
-                    }
+            let hw = b.width / 2;
+            let hh = b.height / 2;
+            let x0 = b.x.saturating_sub(hw);
+            let y0 = b.y.saturating_sub(hh);
+            let x1 = b.x + hw;
+            let y1 = b.y + hh;
+            for y in y0..=y1 {
+                for x in x0..=x1 {
+                    road_cells.remove(&(x, y));
                 }
             }
         }
 
-        // 3. Thin: iteratively remove fully-interior cells
-        //    (all 4 cardinal neighbors are road → safe to remove).
+        // Thin: iteratively remove fully-interior cells.
         loop {
             let removable: Vec<_> = road_cells
                 .iter()
@@ -183,7 +308,7 @@ impl CityLayout {
             }
         }
 
-        // 4. Rebuild roads from 4-connected components.
+        // Rebuild roads from 4-connected components.
         let mut visited: HashSet<(u32, u32)> = HashSet::new();
         let mut merged = Vec::new();
 
@@ -210,10 +335,9 @@ impl CityLayout {
             let mut serves = Vec::new();
             for &(cx, cy) in &component {
                 for (bi, b) in self.buildings.iter().enumerate() {
-                    if cx.abs_diff(b.x) <= b.radius + 1
-                        && cy.abs_diff(b.y) <= b.radius + 1
-                        && !serves.contains(&bi)
-                    {
+                    let hw = b.width / 2 + 1;
+                    let hh = b.height / 2 + 1;
+                    if cx.abs_diff(b.x) <= hw && cy.abs_diff(b.y) <= hh && !serves.contains(&bi) {
                         serves.push(bi);
                     }
                 }

@@ -43,10 +43,8 @@ impl CityLayout {
     pub fn to_tilemap(&self) -> TileMap {
         let (w, h) = (self.width, self.height);
         let mut tiles = vec![Tile::Empty; (w * h) as usize];
-
         let idx = |x: u32, y: u32| (y * w + x) as usize;
 
-        // Stamp roads first so buildings overwrite on overlap.
         for road in &self.roads {
             for &(rx, ry) in &road.path {
                 if rx < w && ry < h {
@@ -55,16 +53,16 @@ impl CityLayout {
             }
         }
 
-        // Stamp building footprints.
         for b in &self.buildings {
-            let r = b.radius as i32;
-            for dy in -r..=r {
-                for dx in -r..=r {
-                    let bx = b.x as i32 + dx;
-                    let by = b.y as i32 + dy;
-                    if bx >= 0 && by >= 0 && (bx as u32) < w && (by as u32) < h {
-                        tiles[idx(bx as u32, by as u32)] = Tile::Building;
-                    }
+            let hw = b.width / 2;
+            let hh = b.height / 2;
+            let x0 = b.x.saturating_sub(hw);
+            let y0 = b.y.saturating_sub(hh);
+            let x1 = (b.x + hw).min(w - 1);
+            let y1 = (b.y + hh).min(h - 1);
+            for y in y0..=y1 {
+                for x in x0..=x1 {
+                    tiles[idx(x, y)] = Tile::Building;
                 }
             }
         }
@@ -87,7 +85,6 @@ impl CityLayout {
             };
             (w * h) as usize
         ];
-
         let idx = |x: u32, y: u32| (y * w + x) as usize;
 
         for (ri, road) in self.roads.iter().enumerate() {
@@ -101,16 +98,17 @@ impl CityLayout {
         }
 
         for (bi, b) in self.buildings.iter().enumerate() {
-            let r = b.radius as i32;
-            for dy in -r..=r {
-                for dx in -r..=r {
-                    let bx = b.x as i32 + dx;
-                    let by = b.y as i32 + dy;
-                    if bx >= 0 && by >= 0 && (bx as u32) < w && (by as u32) < h {
-                        let c = &mut cells[idx(bx as u32, by as u32)];
-                        c.tile = Tile::Building;
-                        c.building_index = Some(bi);
-                    }
+            let hw = b.width / 2;
+            let hh = b.height / 2;
+            let x0 = b.x.saturating_sub(hw);
+            let y0 = b.y.saturating_sub(hh);
+            let x1 = (b.x + hw).min(w - 1);
+            let y1 = (b.y + hh).min(h - 1);
+            for y in y0..=y1 {
+                for x in x0..=x1 {
+                    let c = &mut cells[idx(x, y)];
+                    c.tile = Tile::Building;
+                    c.building_index = Some(bi);
                 }
             }
         }

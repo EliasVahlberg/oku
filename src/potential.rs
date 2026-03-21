@@ -68,6 +68,12 @@ impl InteractionMatrix {
             .fold(0.0f32, f32::max)
     }
 
+    /// Load interaction weights from a JSON string.
+    pub fn from_json(json: &str) -> Result<Self, serde_json::Error> {
+        let m: Self = serde_json::from_str(json)?;
+        Ok(m.build())
+    }
+
     /// Default urban interaction matrix.
     pub fn default_urban() -> Self {
         let m: Self = serde_json::from_str(include_str!("../data/default_weights.json"))

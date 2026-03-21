@@ -13,7 +13,8 @@ pub struct AgentCatalog {
 pub struct BuildingTemplate {
     pub name: String,
     pub category: Category,
-    pub radius: u32,
+    pub width: u32,
+    pub height: u32,
     pub priority: f32,
     pub connections: Vec<ConnectionDemand>,
     #[serde(default)]

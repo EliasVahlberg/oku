@@ -9,12 +9,13 @@ const CELL: u32 = 4;
 
 fn main() {
     let mut templates = Vec::new();
-    let mut push = |prefix: &str, cat: Category, radius: u32, count: usize, base_pri: f32| {
+    let mut push = |prefix: &str, cat: Category, size: u32, count: usize, base_pri: f32| {
         for i in 0..count {
             templates.push(BuildingTemplate {
                 name: format!("{prefix}_{i}"),
                 category: cat,
-                radius,
+                width: size,
+                height: size,
                 priority: base_pri - i as f32 * 0.01,
                 connections: vec![],
                 material: Material::Stone,
@@ -22,15 +23,15 @@ fn main() {
         }
     };
 
-    push("wall_tower", Category::Military, 2, 6, 1.0);
-    push("well", Category::Infrastructure, 1, 8, 0.9);
-    push("granary", Category::Infrastructure, 2, 4, 0.85);
-    push("great_temple", Category::Sacred, 3, 1, 0.8);
-    push("shrine", Category::Sacred, 2, 3, 0.7);
-    push("market", Category::Commercial, 2, 6, 0.75);
-    push("workshop", Category::Commercial, 1, 8, 0.5);
-    push("house", Category::Residential, 1, 50, 0.3);
-    push("villa", Category::Residential, 2, 10, 0.35);
+    push("wall_tower", Category::Military, 5, 6, 1.0);
+    push("well", Category::Infrastructure, 3, 8, 0.9);
+    push("granary", Category::Infrastructure, 5, 4, 0.85);
+    push("great_temple", Category::Sacred, 7, 1, 0.8);
+    push("shrine", Category::Sacred, 5, 3, 0.7);
+    push("market", Category::Commercial, 5, 6, 0.75);
+    push("workshop", Category::Commercial, 3, 8, 0.5);
+    push("house", Category::Residential, 3, 50, 0.3);
+    push("villa", Category::Residential, 5, 10, 0.35);
 
     let catalog = AgentCatalog { templates };
     let spec = CitySpec {
@@ -41,6 +42,10 @@ fn main() {
         beta: 2.5,
         seed: 7,
         erosion: None,
+        terrain_costs: None,
+        obstacles: vec![],
+        arrival_strategy: None,
+        interaction_matrix: None,
     };
 
     eprintln!("Generating {} buildings...", catalog.templates.len());
@@ -56,10 +61,10 @@ fn main() {
     let (mut min_y, mut max_y) = (spec.height, 0u32);
 
     for b in &city.buildings {
-        min_x = min_x.min(b.x.saturating_sub(b.radius));
-        max_x = max_x.max(b.x + b.radius);
-        min_y = min_y.min(b.y.saturating_sub(b.radius));
-        max_y = max_y.max(b.y + b.radius);
+        min_x = min_x.min(b.x.saturating_sub(b.width / 2));
+        max_x = max_x.max(b.x + b.width / 2);
+        min_y = min_y.min(b.y.saturating_sub(b.height / 2));
+        max_y = max_y.max(b.y + b.height / 2);
     }
     for road in &city.roads {
         for &(rx, ry) in &road.path {
@@ -109,12 +114,13 @@ fn main() {
             Category::Commercial => ("#27ae60", "#2ecc71"),
             Category::Residential => ("#7f8c8d", "#95a5a6"),
         };
-        let bx = (b.x.saturating_sub(b.radius) - min_x) * CELL;
-        let by = (b.y.saturating_sub(b.radius) - min_y) * CELL;
-        let side = (b.radius * 2 + 1) * CELL;
+        let bx = (b.x.saturating_sub(b.width / 2) - min_x) * CELL;
+        let by = (b.y.saturating_sub(b.height / 2) - min_y) * CELL;
+        let sw = b.width * CELL;
+        let sh = b.height * CELL;
         let _ = writeln!(
             svg,
-            "<rect x=\"{bx}\" y=\"{by}\" width=\"{side}\" height=\"{side}\" fill=\"{fill}\" stroke=\"{stroke}\" stroke-width=\"1\" rx=\"1\"/>"
+            "<rect x=\"{bx}\" y=\"{by}\" width=\"{sw}\" height=\"{sh}\" fill=\"{fill}\" stroke=\"{stroke}\" stroke-width=\"1\" rx=\"1\"/>"
         );
     }
 

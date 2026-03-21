@@ -16,6 +16,15 @@ pub struct ErosionSpec {
     /// 0.0 = pristine, 1.0 = total ruin.
     pub severity: f32,
     pub seed: u64,
+    /// Weight for material durability in erosion scoring (default 0.4).
+    #[serde(default)]
+    pub durability_weight: Option<f32>,
+    /// Weight for accessibility in erosion scoring (default 0.4).
+    #[serde(default)]
+    pub accessibility_weight: Option<f32>,
+    /// Weight for random noise in erosion scoring (default 0.2).
+    #[serde(default)]
+    pub random_weight: Option<f32>,
 }
 
 /// Apply functional erosion to a city layout.
@@ -27,6 +36,10 @@ pub fn erode(city: &mut CityLayout, spec: &ErosionSpec) {
         return;
     }
 
+    let w_dur = spec.durability_weight.unwrap_or(0.4);
+    let w_acc = spec.accessibility_weight.unwrap_or(0.4);
+    let w_rng = spec.random_weight.unwrap_or(0.2);
+
     let mut rng = ChaCha8Rng::seed_from_u64(spec.seed);
     let target = (city.buildings.len() as f32 * spec.severity.clamp(0.0, 1.0)) as usize;
 
@@ -35,19 +48,16 @@ pub fn erode(city: &mut CityLayout, spec: &ErosionSpec) {
             break;
         }
 
-        // Score each building: lower = more vulnerable.
-        // Accessibility from ogun measures how well-connected each building is.
         let scores: Vec<f32> = city
             .buildings
             .iter()
             .enumerate()
             .map(|(i, b)| {
                 let acc = city.accessibility.get(i).copied().unwrap_or(0.0);
-                b.material.durability() * 0.4 + acc * 0.4 + rng.random::<f32>() * 0.2
+                b.material.durability() * w_dur + acc * w_acc + rng.random::<f32>() * w_rng
             })
             .collect();
 
-        // Remove the weakest.
         let victim = scores
             .iter()
             .enumerate()
@@ -58,7 +68,6 @@ pub fn erode(city: &mut CityLayout, spec: &ErosionSpec) {
         city.buildings.remove(victim);
         city.accessibility.remove(victim);
 
-        // Reindex road references after removal.
         city.roads.retain(|r| r.from != victim && r.to != victim);
         for road in &mut city.roads {
             if road.from > victim {

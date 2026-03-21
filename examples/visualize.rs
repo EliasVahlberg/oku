@@ -18,7 +18,8 @@ fn main() {
         templates.push(BuildingTemplate {
             name: format!("wall_tower_{i}"),
             category: Category::Military,
-            radius: 2,
+            width: 5,
+            height: 5,
             priority: 1.0 - i as f32 * 0.01,
             connections: vec![],
             material: Material::Stone,
@@ -30,7 +31,8 @@ fn main() {
         templates.push(BuildingTemplate {
             name: format!("well_{i}"),
             category: Category::Infrastructure,
-            radius: 1,
+            width: 3,
+            height: 3,
             priority: 0.9 - i as f32 * 0.02,
             connections: vec![],
             material: Material::Stone,
@@ -40,7 +42,8 @@ fn main() {
         templates.push(BuildingTemplate {
             name: format!("granary_{i}"),
             category: Category::Infrastructure,
-            radius: 2,
+            width: 5,
+            height: 5,
             priority: 0.85 - i as f32 * 0.02,
             connections: vec![],
             material: Material::Stone,
@@ -51,7 +54,8 @@ fn main() {
     templates.push(BuildingTemplate {
         name: "great_temple".into(),
         category: Category::Sacred,
-        radius: 3,
+        width: 7,
+        height: 7,
         priority: 0.8,
         connections: vec![],
         material: Material::Stone,
@@ -60,7 +64,8 @@ fn main() {
         templates.push(BuildingTemplate {
             name: format!("shrine_{i}"),
             category: Category::Sacred,
-            radius: 2,
+            width: 5,
+            height: 5,
             priority: 0.7 - i as f32 * 0.05,
             connections: vec![],
             material: Material::Stone,
@@ -72,7 +77,8 @@ fn main() {
         templates.push(BuildingTemplate {
             name: format!("market_{i}"),
             category: Category::Commercial,
-            radius: 2,
+            width: 5,
+            height: 5,
             priority: 0.75 - i as f32 * 0.03,
             connections: vec![],
             material: Material::Stone,
@@ -82,7 +88,8 @@ fn main() {
         templates.push(BuildingTemplate {
             name: format!("workshop_{i}"),
             category: Category::Commercial,
-            radius: 1,
+            width: 3,
+            height: 3,
             priority: 0.5 - i as f32 * 0.02,
             connections: vec![],
             material: Material::Stone,
@@ -94,7 +101,8 @@ fn main() {
         templates.push(BuildingTemplate {
             name: format!("house_{i}"),
             category: Category::Residential,
-            radius: 1,
+            width: 3,
+            height: 3,
             priority: 0.3 - i as f32 * 0.005,
             connections: vec![],
             material: Material::Stone,
@@ -104,7 +112,8 @@ fn main() {
         templates.push(BuildingTemplate {
             name: format!("villa_{i}"),
             category: Category::Residential,
-            radius: 2,
+            width: 5,
+            height: 5,
             priority: 0.35 - i as f32 * 0.01,
             connections: vec![],
             material: Material::Stone,
@@ -123,7 +132,14 @@ fn main() {
         erosion: severity.map(|s| ErosionSpec {
             severity: s,
             seed: 7,
+            durability_weight: None,
+            accessibility_weight: None,
+            random_weight: None,
         }),
+        terrain_costs: None,
+        obstacles: vec![],
+        arrival_strategy: None,
+        interaction_matrix: None,
     };
 
     eprintln!(
@@ -151,7 +167,8 @@ fn main() {
 
     // 2. Draw building outlines (border only) and center marker.
     for b in &city.buildings {
-        let r = b.radius as i32;
+        let hw = (b.width / 2) as i32;
+        let hh = (b.height / 2) as i32;
         let (color, fill, border, center) = match b.category {
             Category::Military => ("31", '░', '▓', '▓'),
             Category::Infrastructure => ("36", '░', '▒', '▒'),
@@ -160,12 +177,12 @@ fn main() {
             Category::Residential => ("34", ' ', '▪', '▪'),
         };
 
-        for dy in -r..=r {
-            for dx in -r..=r {
+        for dy in -hh..=hh {
+            for dx in -hw..=hw {
                 let bx = b.x as i32 + dx;
                 let by = b.y as i32 + dy;
                 if bx >= 0 && by >= 0 && (bx as usize) < w && (by as usize) < h {
-                    let on_edge = dx == -r || dx == r || dy == -r || dy == r;
+                    let on_edge = dx == -hw || dx == hw || dy == -hh || dy == hh;
                     let at_center = dx == 0 && dy == 0;
                     let ch = if at_center {
                         center

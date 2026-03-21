@@ -4,12 +4,13 @@ use std::time::Duration;
 
 fn catalog(n: usize) -> AgentCatalog {
     let mut templates = Vec::new();
-    let mut push = |prefix: &str, cat: Category, radius: u32, count: usize, base_pri: f32| {
+    let mut push = |prefix: &str, cat: Category, size: u32, count: usize, base_pri: f32| {
         for i in 0..count {
             templates.push(BuildingTemplate {
                 name: format!("{prefix}_{i}"),
                 category: cat,
-                radius,
+                width: size,
+                height: size,
                 priority: base_pri - i as f32 * 0.005,
                 connections: vec![],
                 material: Material::Stone,
@@ -17,13 +18,13 @@ fn catalog(n: usize) -> AgentCatalog {
         }
     };
 
-    push("wall", Category::Military, 2, (n / 16).max(1), 1.0);
-    push("well", Category::Infrastructure, 1, (n / 8).max(1), 0.9);
-    push("temple", Category::Sacred, 3, (n / 24).max(1), 0.8);
-    push("market", Category::Commercial, 2, (n / 12).max(1), 0.75);
-    push("workshop", Category::Commercial, 1, (n / 12).max(1), 0.5);
-    push("house", Category::Residential, 1, n / 2, 0.3);
-    push("villa", Category::Residential, 2, n / 10, 0.35);
+    push("wall", Category::Military, 5, (n / 16).max(1), 1.0);
+    push("well", Category::Infrastructure, 3, (n / 8).max(1), 0.9);
+    push("temple", Category::Sacred, 7, (n / 24).max(1), 0.8);
+    push("market", Category::Commercial, 5, (n / 12).max(1), 0.75);
+    push("workshop", Category::Commercial, 3, (n / 12).max(1), 0.5);
+    push("house", Category::Residential, 3, n / 2, 0.3);
+    push("villa", Category::Residential, 5, n / 10, 0.35);
 
     AgentCatalog { templates }
 }
@@ -37,6 +38,10 @@ fn spec(width: u32, height: u32) -> CitySpec {
         beta: 2.5,
         seed: 42,
         erosion: None,
+        terrain_costs: None,
+        obstacles: vec![],
+        arrival_strategy: None,
+        interaction_matrix: None,
     }
 }
 
@@ -67,7 +72,13 @@ fn bench_erosion(c: &mut Criterion) {
     let cat = catalog(30);
     for severity in [0.3, 0.6, 0.9] {
         let s = CitySpec {
-            erosion: Some(ErosionSpec { severity, seed: 42 }),
+            erosion: Some(ErosionSpec {
+                severity,
+                seed: 42,
+                durability_weight: None,
+                accessibility_weight: None,
+                random_weight: None,
+            }),
             ..spec(80, 80)
         };
         group.bench_with_input(

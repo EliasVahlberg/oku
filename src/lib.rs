@@ -13,7 +13,8 @@
 //!         BuildingTemplate {
 //!             name: "market".into(),
 //!             category: Category::Commercial,
-//!             radius: 2,
+//!             width: 5,
+//!             height: 5,
 //!             priority: 0.8,
 //!             connections: vec![],
 //!             material: Material::Stone,
@@ -21,7 +22,8 @@
 //!         BuildingTemplate {
 //!             name: "house".into(),
 //!             category: Category::Residential,
-//!             radius: 1,
+//!             width: 3,
+//!             height: 3,
 //!             priority: 0.3,
 //!             connections: vec![],
 //!             material: Material::Wood,
@@ -37,6 +39,10 @@
 //!     beta: 2.0,
 //!     seed: 42,
 //!     erosion: None,
+//!     terrain_costs: None,
+//!     obstacles: vec![],
+//!     arrival_strategy: None,
+//!     interaction_matrix: None,
 //! };
 //!
 //! let city = generate(&spec, &catalog);
@@ -57,7 +63,7 @@ mod translate;
 pub use arrival::{ArrivalStrategy, Phase};
 pub use catalog::{AgentCatalog, BuildingTemplate, Category, ConnectionDemand, Material};
 pub use erosion::ErosionSpec;
-pub use interpret::{CityLayout, PlacedBuilding, Road};
+pub use interpret::{CityLayout, Direction, PlacedBuilding, Road};
 pub use ogun::ScoreBreakdown;
 pub use output::{SemanticCell, SemanticGrid, Tile, TileMap};
 pub use potential::{InteractionFn, InteractionMatrix};

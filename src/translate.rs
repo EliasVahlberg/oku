@@ -1,18 +1,17 @@
 //! Translation layer: CitySpec + AgentCatalog → ogun inputs.
 //!
 //! Reorders nodes by arrival strategy, generates edges from the
-//! interaction matrix, and inflates node radii by per-category gap
+//! interaction matrix, and inflates node dimensions by per-category gap
 //! so ogun's overlap rejection enforces road-width spacing.
 
 use std::collections::HashMap;
 
-use ogun::{Edge, EdgeId, Graph, Node, NodeId, OgunConfig, Space};
+use ogun::{Edge, EdgeId, Graph, Grid, Node, NodeId, OgunConfig, PotentialKernel, Rect, Space};
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
 
 use crate::arrival::{self, ArrivalStrategy, Phase};
 use crate::catalog::{AgentCatalog, Category};
-use crate::potential::InteractionMatrix;
 use crate::spec::{CitySpec, CityType};
 
 /// Translate urban domain inputs into ogun's abstract graph, space, and config.
@@ -25,22 +24,27 @@ pub fn translate(
     catalog: &AgentCatalog,
 ) -> (Graph, Space, OgunConfig, Vec<usize>) {
     let mut rng = ChaCha8Rng::seed_from_u64(spec.seed);
-    let strategy = default_strategy(spec.city_type);
+    let strategy = spec
+        .arrival_strategy
+        .clone()
+        .unwrap_or_else(|| default_strategy(spec.city_type));
     let order = arrival::order_agents(&catalog.templates, &strategy, &mut rng);
 
-    let matrix = InteractionMatrix::default();
+    let matrix = spec.interaction_matrix.clone().unwrap_or_default();
 
-    // Nodes in arrival order, radii inflated by per-category gap padding
+    // Nodes in arrival order, dimensions inflated by per-category gap padding
     // so ogun's overlap check enforces minimum spacing between buildings.
     let nodes: Vec<Node> = order
         .iter()
         .enumerate()
         .map(|(new_idx, &orig_idx)| {
-            let cat = catalog.templates[orig_idx].category;
-            let padding = matrix.padding(cat).ceil() as u32;
+            let t = &catalog.templates[orig_idx];
+            let padding = matrix.padding(t.category).ceil() as u32;
             Node {
                 id: NodeId(new_idx as u32),
-                radius: catalog.templates[orig_idx].radius + padding,
+                width: t.width + 2 * padding,
+                height: t.height + 2 * padding,
+                fixed: None,
             }
         })
         .collect();
@@ -49,8 +53,6 @@ pub fn translate(
     // Same-category pairs are capped to K nearest neighbors to avoid O(n²)
     // road explosion (60 residential buildings → 1770 edges without cap).
     const K_SAME: usize = 3;
-
-    // Count how many same-category edges each node already has.
     let mut same_count: Vec<usize> = vec![0; order.len()];
 
     let mut edges = Vec::new();
@@ -63,7 +65,6 @@ pub fn translate(
             if f.attraction <= f32::EPSILON {
                 continue;
             }
-            // Cap same-category edges per node.
             if cat_i == cat_j {
                 if same_count[ni] >= K_SAME || same_count[nj] >= K_SAME {
                     continue;
@@ -100,17 +101,45 @@ pub fn translate(
     }
 
     let graph = Graph { nodes, edges };
+
+    // Space: forward terrain and obstacles from spec.
+    let obstacles: Vec<Rect> = spec
+        .obstacles
+        .iter()
+        .map(|&(x, y, w, h)| Rect { x, y, w, h })
+        .collect();
+
+    let routing_costs = spec.terrain_costs.as_ref().map(|costs| {
+        let mut grid = Grid::new(spec.width, spec.height, 1.0);
+        for (i, &c) in costs.iter().enumerate() {
+            let x = (i as u32) % spec.width;
+            let y = (i as u32) / spec.width;
+            grid.set(x, y, c);
+        }
+        grid
+    });
+
     let space = Space {
         width: spec.width,
         height: spec.height,
-        obstacles: Vec::new(),
-        routing_costs: None,
+        obstacles,
+        routing_costs,
     };
-    // Moderate repulsion_k to spread buildings across the grid.
+
+    // Cell bonus: negate terrain costs so expensive terrain discourages placement.
+    let cell_bonus = spec.terrain_costs.as_ref().map(|costs| {
+        let mut grid = Grid::new(spec.width, spec.height, 0.0);
+        for (i, &c) in costs.iter().enumerate() {
+            let x = (i as u32) % spec.width;
+            let y = (i as u32) / spec.width;
+            grid.set(x, y, -c);
+        }
+        grid
+    });
+
     let grid_diag = ((spec.width * spec.width + spec.height * spec.height) as f32).sqrt();
 
-    // Per-pair repulsion: category pairs with gap but no attraction get extra
-    // repulsion force so ogun pushes them apart beyond the minimum spacing.
+    // Per-pair repulsion: category pairs with gap but no attraction.
     let mut repulsion_pairs: HashMap<(NodeId, NodeId), f32> = HashMap::new();
     for (ni, &oi) in order.iter().enumerate() {
         for (nj, &oj) in order.iter().enumerate().skip(ni + 1) {
@@ -129,6 +158,10 @@ pub fn translate(
         seed: spec.seed,
         repulsion_k: grid_diag * 2.0,
         repulsion_pairs,
+        kernel: PotentialKernel {
+            cell_bonus,
+            ..PotentialKernel::default()
+        },
         ..OgunConfig::default()
     };
 
